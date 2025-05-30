@@ -9,64 +9,6 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="点位Id" prop="nodeId">
-        <el-input
-          v-model="queryParams.nodeId"
-          placeholder="请输入点位Id"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="商圈类型" prop="businessType">
-        <el-select v-model="queryParams.businessType" placeholder="请选择商圈类型" clearable>
-          <el-option
-            v-for="dict in business_type"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="区域Id" prop="regionId">
-        <el-input
-          v-model="queryParams.regionId"
-          placeholder="请输入区域Id"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="合作商Id" prop="partnerId">
-        <el-input
-          v-model="queryParams.partnerId"
-          placeholder="请输入合作商Id"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="设备型号" prop="vmTypeId">
-        <el-input
-          v-model="queryParams.vmTypeId"
-          placeholder="请输入设备型号"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="客户端连接Id,做emq认证用" prop="clientId">
-        <el-input
-          v-model="queryParams.clientId"
-          placeholder="请输入客户端连接Id,做emq认证用"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="策略id" prop="policyId">
-        <el-input
-          v-model="queryParams.policyId"
-          placeholder="请输入策略id"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
@@ -117,24 +59,34 @@
 
     <el-table v-loading="loading" :data="machineList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键" align="center" prop="id" />
       <el-table-column label="设备编号" align="center" prop="innerCode" />
+      <el-table-column label="设备型号" align="center" prop="vmTypeId" >
+        <template #default="scope">
+          <div v-for="item in vmTypeList" :key="item.id">
+            <span v-if="item.id === scope.row.vmTypeId">{{ item.name }}</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="详细地址" align="center" prop="addr" />
-      <el-table-column label="合作商Id" align="center" prop="partnerId" />
-      <el-table-column label="设备型号" align="center" prop="vmTypeId" />
-      <el-table-column label="设备状态，0:未投放;1-运营;3-撤机" align="center" prop="vmStatus">
+      <el-table-column label="合作商" align="center" prop="partnerId" >
+        <template #default="scope">
+          <div v-for="item in partnerList" :key="item.id">
+            <span v-if="item.id==scope.row.partnerId">{{ item.partnerName }}</span>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="设备状态" align="center" prop="vmStatus">
         <template #default="scope">
           <dict-tag :options="vm_status" :value="scope.row.vmStatus"/>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['manger:machine:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['manger:machine:remove']">删除</el-button>
+          <el-button link type="primary"  @click="handleUpdate(scope.row)" v-hasPermi="['manger:machine:edit']">修改</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <pagination
       v-show="total>0"
       :total="total"
@@ -146,14 +98,44 @@
     <!-- 添加或修改设备管理对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="machineRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="设备编号" prop="innerCode">
-          <el-input v-model="form.innerCode" placeholder="请输入设备编号" />
+        <el-form-item label="设备编号">
+          <span>{{ form.innerCode === null ? '系统自动生成' : form.innerCode }}</span>
         </el-form-item>
-        <el-form-item label="点位Id" prop="nodeId">
-          <el-input v-model="form.nodeId" placeholder="请输入点位Id" />
+        <el-form-item label="供货时间" v-if="form.innerCode !== null">
+          <span>{{ parseTime(form.lastSupplyTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </el-form-item>
-        <el-form-item label="设备型号" prop="vmTypeId">
-          <el-input v-model="form.vmTypeId" placeholder="请输入设备型号" />
+        <el-form-item label="设备类型" v-if="form.innerCode !== null">
+          <div v-for="item in vmTypeList" :key="item.id">
+            <span v-if="form.vmTypeId == item.id">{{ item.name }}</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="设备容量" v-if="form.innerCode !== null">
+          <span>{{ form.channelMaxCapacity }}</span>
+        </el-form-item>
+        <el-form-item label="选择型号" prop="vmTypeId" v-if="form.innerCode === null">
+          <!-- <el-input v-model="form.vmTypeId" placeholder="请输入设备型号" /> -->
+          <el-select v-model="form.vmTypeId" placeholder="请选择设备型号" style="width: 100%">
+            <el-option v-for="item in vmTypeList" :key="item.id" :label="item.name" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="选择点位" prop="nodeId">
+          <!-- <el-input v-model="form.nodeId" placeholder="请输入点位Id" /> -->
+          <el-select v-model="form.nodeId" placeholder="请选择点位" style="width: 100%">
+            <el-option v-for="item in nodeList" :key="item.id" :label="item.nodeName" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="合作商" v-if="form.innerCode !== null">
+          <div v-for="item in partnerList" :key="item.id">
+            <span v-if="form.partnerId == item.id">{{ item.partnerName }}</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="所属区域" v-if="form.innerCode !== null">
+          <div v-for="item in regionList" :key="item.id">
+            <span v-if="form.regionId == item.id">{{ item.regionName }}</span>
+          </div>
+        </el-form-item>
+        <el-form-item label="设备地址" v-if="form.innerCode !== null">
+          <span>{{ form.addr }}</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -168,6 +150,12 @@
 
 <script setup name="Machine">
 import { listMachine, getMachine, delMachine, addMachine, updateMachine } from "@/api/manger/machine";
+import {listVmType} from "@/api/manger/vmType.js";
+import {loadAllParams} from "@/api/page.js";
+import {listPartner} from "@/api/manger/partner.js";
+import {listNode} from "@/api/manger/node.js";
+import {listRegion} from "@/api/manger/region.js";
+import {parseTime} from "../../../utils/ruoyi.js";
 
 const { proxy } = getCurrentInstance();
 const { vm_status, business_type } = proxy.useDict('vm_status', 'business_type');
@@ -197,9 +185,6 @@ const data = reactive({
     policyId: null,
   },
   rules: {
-    innerCode: [
-      { required: true, message: "设备编号不能为空", trigger: "blur" }
-    ],
     nodeId: [
       { required: true, message: "点位Id不能为空", trigger: "blur" }
     ],
@@ -327,6 +312,38 @@ function handleExport() {
     ...queryParams.value
   }, `machine_${new Date().getTime()}.xlsx`)
 }
+/** 查询设备类型列表 */
+const vmTypeList = ref([]);
+function getVmTypeList() {
+  listVmType(loadAllParams).then(response=>{
+    vmTypeList.value = response.rows;
+  })
+}
+/** 获取合作商列表 */
+const partnerList = ref([]);
+function getPartnerList() {
+  listPartner(loadAllParams).then(response=>{
+    partnerList.value = response.rows;
+  })
+}
+/** 获取点位列表 */
+const nodeList = ref([]);
+function getNodeList() {
+  listNode(loadAllParams).then(response=>{
+    nodeList.value = response.rows;
+  })
+}
+/** 获取区域列表 */
+const regionList = ref([]);
+function getRegionList() {
+  listRegion(loadAllParams).then(response => {
+    regionList.value = response.rows;
+  })
+}
 
+getRegionList();
+getNodeList();
+getPartnerList();
+getVmTypeList();
 getList();
 </script>
