@@ -88,6 +88,7 @@
       <el-table-column label="详细地址" align="left" prop="address" show-overflow-tooltip />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="primary"  @click="getNodeInfo(scope.row)" v-hasPermi="['manger:node:list']">查看详情</el-button>
           <el-button link type="primary"  @click="handleUpdate(scope.row)" v-hasPermi="['manger:node:edit']">修改</el-button>
           <el-button link type="primary"  @click="handleDelete(scope.row)" v-hasPermi="['manger:node:remove']">删除</el-button>
         </template>
@@ -146,6 +147,23 @@
         </div>
       </template>
     </el-dialog>
+    <!-- 查看详情对话框    -->
+    <el-dialog title="查看详情" v-model="openMachine" width="600px" append-to-body>
+      <el-table  :data="vmList" >
+        <el-table-column label="序号" type="index" width="55" align="center" />
+        <el-table-column label="设备编号" align="center" prop="innerCode" />
+        <el-table-column label="设备状态" align="center" prop="vmStatus">
+          <template #default="scope">
+            <dict-tag :options="vm_status" :value="scope.row.vmStatus"/>
+          </template>
+        </el-table-column>
+        <el-table-column label="最后一次供货时间" align="center" prop="vmStatus">
+          <template #default="scope">
+            {{ parseTime(scope.row.lastSupplyTime, '{y}-{m}-{d} {h}:{i}:{s}') }}
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -154,9 +172,11 @@ import { listNode, getNode, delNode, addNode, updateNode } from "@/api/manger/no
 import {listPartner} from "@/api/manger/partner.js";
 import {loadAllParams} from "@/api/page.js";
 import {listRegion} from "@/api/manger/region.js";
+import {listMachine} from "@/api/manger/machine.js";
+import {parseTime} from "../../../utils/ruoyi.js";
 
 const { proxy } = getCurrentInstance();
-const { business_type } = proxy.useDict('business_type');
+const { business_type, vm_status } = proxy.useDict('business_type',  'vm_status');
 
 const nodeList = ref([]);
 const open = ref(false);
@@ -320,6 +340,15 @@ const regionList = ref([]);
 function getRegionList() {
   listRegion(loadAllParams).then(response => {
     regionList.value = response.rows;
+  })
+}
+const openMachine = ref(false);
+const vmList = ref([]);
+function getNodeInfo(row){
+  loadAllParams.nodeId = row.id;
+  listMachine(loadAllParams).then(response => {
+     vmList.value = response.rows;
+      openMachine.value = true;
   })
 }
 getList();
