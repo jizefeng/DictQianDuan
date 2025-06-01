@@ -260,7 +260,9 @@ function handleExport() {
 const openVmInfo = ref(false);
 const vmInfo = ref([]);
 function getVmInfo(row) {
+  // 获取策略信息
   form.value = row;
+  // 根据策略id,查询设备列表
   loadAllParams.policyId = row.policyId;
   listMachine(loadAllParams).then(response => {
     vmInfo.value = response.rows;

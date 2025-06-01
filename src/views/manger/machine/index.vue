@@ -82,6 +82,7 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="primary"  @click="handleUpdatePolicy(scope.row)" v-hasPermi="['manger:machine:edit']">策略</el-button>
           <el-button link type="primary"  @click="handleUpdate(scope.row)" v-hasPermi="['manger:machine:edit']">修改</el-button>
         </template>
       </el-table-column>
@@ -145,6 +146,23 @@
         </div>
       </template>
     </el-dialog>
+    <!-- 策略管理对话框 -->
+    <el-dialog title="策略管理" v-model="policyOpen" width="500px" append-to-body>
+      <el-form ref="vmRef" :model="form" label-width="80px">
+        <el-form-item label="策略" prop="policyId">
+          <el-select v-model="form.policyId" placeholder="请选择策略">
+            <el-option v-for="item in policyList" :key="item.policyId" :label="item.policyName"
+                       :value="item.policyId"></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submitForm">确 定</el-button>
+          <el-button @click="cancel">取 消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -156,6 +174,7 @@ import {listPartner} from "@/api/manger/partner.js";
 import {listNode} from "@/api/manger/node.js";
 import {listRegion} from "@/api/manger/region.js";
 import {parseTime} from "../../../utils/ruoyi.js";
+import {listPolicy} from "@/api/manger/policy.js";
 
 const { proxy } = getCurrentInstance();
 const { vm_status, business_type } = proxy.useDict('vm_status', 'business_type');
@@ -209,6 +228,7 @@ function getList() {
 // 取消按钮
 function cancel() {
   open.value = false;
+  policyOpen.value = false;
   reset();
 }
 
@@ -282,6 +302,7 @@ function submitForm() {
         updateMachine(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
           open.value = false;
+          policyOpen.value = false;
           getList();
         });
       } else {
@@ -340,7 +361,19 @@ function getRegionList() {
     regionList.value = response.rows;
   })
 }
-
+/* 设备策略分配 */
+const policyList = ref([]);
+const policyOpen = ref(false);
+function handleUpdatePolicy(row) {
+  //1. 为表单赋值设备id和策略id
+  form.value.id = row.id;
+  form.value.policyId = row.policyId;
+  //2. 查询策略列表
+  listPolicy(loadAllParams).then((response) => {
+    policyList.value = response.rows;
+    policyOpen.value = true;
+  });
+}
 getRegionList();
 getNodeList();
 getPartnerList();
