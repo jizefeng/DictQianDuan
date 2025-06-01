@@ -59,22 +59,23 @@
 
     <el-table v-loading="loading" :data="policyList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="策略id" align="center" prop="policyId" />
+      <el-table-column label="序号" t ype="index" align="center" prop="policyId" />
       <el-table-column label="策略名称" align="center" prop="policyName" />
-      <el-table-column label="策略方案，如：80代表8折" align="center" prop="discount" />
+      <el-table-column label="策略方案" align="center" prop="discount" />
       <el-table-column label="创建时间" align="center" prop="createTime" width="180">
         <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
+          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{i}:{s}') }}</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['manger:policy:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['manger:policy:remove']">删除</el-button>
+          <el-button link type="primary"  @click="getVmInfo(scope.row)" v-hasPermi="['manger:machine:list']">查看详情</el-button>
+          <el-button link type="primary"  @click="handleUpdate(scope.row)" v-hasPermi="['manger:policy:edit']">修改</el-button>
+          <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['manger:policy:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <pagination
       v-show="total>0"
       :total="total"
@@ -89,8 +90,8 @@
         <el-form-item label="策略名称" prop="policyName">
           <el-input v-model="form.policyName" placeholder="请输入策略名称" />
         </el-form-item>
-        <el-form-item label="策略方案，如：80代表8折" prop="discount">
-          <el-input v-model="form.discount" placeholder="请输入策略方案，如：80代表8折" />
+        <el-form-item label="策略方案" prop="discount">
+          <el-input-number :min="1" :max="100" :precision="0" v-model="form.discount" placeholder="请输入策略方案，如：80代表8折" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -100,11 +101,26 @@
         </div>
       </template>
     </el-dialog>
+      <!-- 查看详情对话框    -->
+     <el-dialog title="查看详情" v-model="openVmInfo" width="500px" append-to-body>
+       <el-form-item label="策略名称" prop="policyName">
+         <el-input v-model="form.policyName" placeholder="请输入策略名称" disabled />
+       </el-form-item>
+       <label>包含设备：</label>
+       <el-table :data="vmInfo">
+         <el-table-column label="序号" type="index" width="80" align="center" prop="id" />
+         <el-table-column label="点位地址" align="left" prop="addr" show-overflow-tooltip />
+         <el-table-column label="设备编号" align="center" prop="innerCode" />
+       </el-table>
+     </el-dialog>
   </div>
 </template>
 
 <script setup name="Policy">
 import { listPolicy, getPolicy, delPolicy, addPolicy, updatePolicy } from "@/api/manger/policy";
+import {parseTime} from "../../../utils/ruoyi.js";
+import {loadAllParams} from "@/api/page.js";
+import {listMachine} from "@/api/manger/machine.js";
 
 const { proxy } = getCurrentInstance();
 
@@ -240,6 +256,16 @@ function handleExport() {
     ...queryParams.value
   }, `policy_${new Date().getTime()}.xlsx`)
 }
-
+/** 查看详情按钮操作 */
+const openVmInfo = ref(false);
+const vmInfo = ref([]);
+function getVmInfo(row) {
+  form.value = row;
+  loadAllParams.policyId = row.policyId;
+  listMachine(loadAllParams).then(response => {
+    vmInfo.value = response.rows;
+     openVmInfo.value = true;
+  })
+}
 getList();
 </script>
