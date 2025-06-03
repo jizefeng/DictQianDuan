@@ -82,7 +82,7 @@
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" @click="handleGoods(scope.row)" v-hasPermi="['manage:vm:edit']">货道</el-button>
+          <el-button link type="primary" @click="handleGoods(scope.row)" v-hasPermi="['manger:vm:edit']">货道</el-button>
           <el-button link type="primary"  @click="handleUpdatePolicy(scope.row)" v-hasPermi="['manger:machine:edit']">策略</el-button>
           <el-button link type="primary"  @click="handleUpdate(scope.row)" v-hasPermi="['manger:machine:edit']">修改</el-button>
         </template>
